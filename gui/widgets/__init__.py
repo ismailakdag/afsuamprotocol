@@ -5,5 +5,6 @@ GUI widgets for AFSUAM Measurement System.
 from .hardware_panel import HardwarePanel
 from .beam_control import BeamControlPanel
 from .status_bar import StatusBar
+from .realtime_graph import RealTimeGraph
 
-__all__ = ['HardwarePanel', 'BeamControlPanel', 'StatusBar']
+__all__ = ['HardwarePanel', 'BeamControlPanel', 'StatusBar', 'RealTimeGraph']
