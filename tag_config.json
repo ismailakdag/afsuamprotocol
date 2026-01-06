@@ -1,0 +1,42 @@
+{
+    "tags": [
+        {
+            "suffix": "7496",
+            "label": "PLKSLHT-2"
+        },
+        {
+            "suffix": "72E6",
+            "label": "PLKSLHT-1"
+        },
+        {
+            "suffix": "72F6",
+            "label": "FPA-1"
+        },
+        {
+            "suffix": "7446",
+            "label": "Transfer-1"
+        },
+        {
+            "suffix": "7476",
+            "label": "RM-1"
+        },
+        {
+            "suffix": "7486",
+            "label": "FRNHT-1"
+        },
+        {
+            "suffix": "7426",
+            "label": "FRNHT-2"
+        },
+        {
+            "suffix": "7436",
+            "label": "RoboticArm"
+        }
+    ],
+    "antenna_settings": {
+        "active_ports": [
+            1
+        ],
+        "port_2_enabled": false
+    }
+}
