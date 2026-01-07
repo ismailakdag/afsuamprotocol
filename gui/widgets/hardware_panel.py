@@ -190,21 +190,32 @@ class HardwarePanel(ttk.LabelFrame):
             ant_frame,
             text="Both (Ant1 + Ant2)",
             variable=self._antenna_mode,
-            value="BOTH"
+            value="BOTH",
+            command=self._on_antenna_mode_changed
+        ).pack(anchor=tk.W)
+        
+        ttk.Radiobutton(
+            ant_frame,
+            text="Individual Both (Separate Runs)",
+            variable=self._antenna_mode,
+            value="INDIVIDUAL_BOTH",
+            command=self._on_antenna_mode_changed
         ).pack(anchor=tk.W)
         
         ttk.Radiobutton(
             ant_frame,
             text="Ant1 Only (Phased Array)",
             variable=self._antenna_mode,
-            value="ANT1_ONLY"
+            value="ANT1_ONLY",
+            command=self._on_antenna_mode_changed
         ).pack(anchor=tk.W)
         
         ttk.Radiobutton(
             ant_frame,
             text="Ant2 Only (Reference)",
             variable=self._antenna_mode,
-            value="ANT2_ONLY"
+            value="ANT2_ONLY",
+            command=self._on_antenna_mode_changed
         ).pack(anchor=tk.W)
         
         self.lbl_antenna_status = ttk.Label(
@@ -288,10 +299,19 @@ class HardwarePanel(ttk.LabelFrame):
             messagebox.showerror("MCU", f"Connection failed: {e}")
     
     def _connect_reader(self):
-        """Connect to RFID reader."""
+        """Connect to RFID reader (and MCU if not connected)."""
         if not self.reader.is_available():
             messagebox.showerror("Reader", "SLLURP library not available.")
             return
+        
+        # Auto-connect MCU if not connected
+        if not self.mcu.is_connected:
+            port = self.cb_port.get().strip()
+            if port:
+                try:
+                    self.mcu.connect(port)
+                except Exception as e:
+                    messagebox.showwarning("MCU", f"MCU auto-connect failed: {e}\nContinuing with reader connection...")
         
         ip = self.ent_ip.get().strip()
         try:
@@ -332,7 +352,8 @@ class HardwarePanel(ttk.LabelFrame):
             if self._on_connected:
                 self._on_connected()
             
-            messagebox.showinfo("Reader", f"Connected: {ip}\nAntennas: {antennas}")
+            mcu_status = "✓" if self.mcu.is_connected else "✗"
+            messagebox.showinfo("Connection", f"Reader: {ip} ✓\nMCU: {mcu_status}\nAntennas: {antennas}")
         else:
             messagebox.showerror("Reader", "Connection failed.")
     
@@ -347,9 +368,35 @@ class HardwarePanel(ttk.LabelFrame):
         if self._on_disconnected:
             self._on_disconnected()
     
+    def _on_antenna_mode_changed(self):
+        """Handle antenna mode change - auto reconnect if connected."""
+        if self.reader and self.reader.connected:
+            # Disconnect and reconnect with new antenna setting
+            self.reader.disconnect()
+            self.btn_connect.config(state=tk.NORMAL)
+            self.btn_disconnect.config(state=tk.DISABLED)
+            
+            # Small delay then reconnect
+            self.after(200, self._connect_reader)
+    
+    def disconnect_all(self):
+        """Disconnect all hardware connections (MCU and Reader)."""
+        if self.reader and self.reader.connected:
+            self.reader.disconnect()
+            self.btn_connect.config(state=tk.NORMAL)
+            self.btn_disconnect.config(state=tk.DISABLED)
+        
+        if self.mcu and self.mcu.is_connected:
+            self.mcu.disconnect()
+    
     def _update_antenna_label(self):
         """Update antenna status label."""
-        if self._current_antennas == [1]:
+        mode_val = self._antenna_mode.get()
+        
+        if mode_val == "INDIVIDUAL_BOTH":
+            text = "Mode: Individual Both"
+            color = "#dc2626"  # Red for special mode
+        elif self._current_antennas == [1]:
             text = "Active: Ant1 Only"
             color = "#2563eb"
         elif self._current_antennas == [2]:
@@ -365,3 +412,8 @@ class HardwarePanel(ttk.LabelFrame):
     def current_antennas(self):
         """Get current active antennas."""
         return self._current_antennas
+    
+    @property
+    def antenna_mode(self):
+        """Get current antenna mode string."""
+        return self._antenna_mode.get()

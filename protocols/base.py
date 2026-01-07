@@ -21,17 +21,37 @@ class StepResult:
     v_ch2: float
     dwell_s: float
     
+    # Active antennas for this step
+    active_antennas: List[int] = field(default_factory=lambda: [1, 2])
+    
+    # Target tag totals
+    tags_total: int = 0
+    
     # Antenna 1 results
     ant1_unique_epc_n: int = 0
     ant1_targets_seen_n: int = 0
     ant1_target_data: List[Dict] = field(default_factory=list)
+    ant1_total_reads: int = 0
+    ant1_rssi_min: Optional[float] = None
+    ant1_rssi_max: Optional[float] = None
+    ant1_rssi_avg: Optional[float] = None
     ant1_missed: List[str] = field(default_factory=list)
+    ant1_missed_suffixes: List[str] = field(default_factory=list)
+    ant1_missed_labels: List[str] = field(default_factory=list)
+    ant1_missed_locations: List[str] = field(default_factory=list)
     
     # Antenna 2 results  
     ant2_unique_epc_n: int = 0
     ant2_targets_seen_n: int = 0
     ant2_target_data: List[Dict] = field(default_factory=list)
+    ant2_total_reads: int = 0
+    ant2_rssi_min: Optional[float] = None
+    ant2_rssi_max: Optional[float] = None
+    ant2_rssi_avg: Optional[float] = None
     ant2_missed: List[str] = field(default_factory=list)
+    ant2_missed_suffixes: List[str] = field(default_factory=list)
+    ant2_missed_labels: List[str] = field(default_factory=list)
+    ant2_missed_locations: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -43,13 +63,18 @@ class TagStepResult:
     tag_suffix: str
     tag_location: str
     
+    # Active antennas for this step
+    active_antennas: List[int] = field(default_factory=lambda: [1, 2])
+    
     ant1_seen: bool = False
     ant1_rssi: Optional[float] = None
     ant1_count: int = 0
+    ant1_phase: Optional[float] = None
     
     ant2_seen: bool = False
     ant2_rssi: Optional[float] = None
     ant2_count: int = 0
+    ant2_phase: Optional[float] = None
 
 
 @dataclass
@@ -60,19 +85,47 @@ class UnionResult:
     port_config: int
     dwell_s: float
     
+    # Active antennas
+    active_antennas: List[int] = field(default_factory=lambda: [1, 2])
+    tags_total: int = 0
+    
     # Union coverage
     ant1_unique_epcs: int = 0
     ant2_unique_epcs: int = 0
     ant1_targets_seen: int = 0
     ant2_targets_seen: int = 0
     
-    # Missed tags
+    # Missed tags - separated
     ant1_missed: List[str] = field(default_factory=list)
     ant2_missed: List[str] = field(default_factory=list)
+    ant1_missed_suffixes: List[str] = field(default_factory=list)
+    ant1_missed_labels: List[str] = field(default_factory=list)
+    ant2_missed_suffixes: List[str] = field(default_factory=list)
+    ant2_missed_labels: List[str] = field(default_factory=list)
     
-    # Best beam per tag
+    # Best beam per tag (suffix -> beam_state)
     ant1_best_beam: Dict[str, str] = field(default_factory=dict)
     ant2_best_beam: Dict[str, str] = field(default_factory=dict)
+    
+    # Best RSSI per tag (suffix -> rssi)
+    ant1_best_rssi: Dict[str, float] = field(default_factory=dict)
+    ant2_best_rssi: Dict[str, float] = field(default_factory=dict)
+    
+    # Seen beams count per tag (suffix -> count of beams that saw this tag)
+    ant1_seen_beams_n: Dict[str, int] = field(default_factory=dict)
+    ant2_seen_beams_n: Dict[str, int] = field(default_factory=dict)
+    
+    # Best beam margin (suffix -> margin_db, None if single beam)
+    ant1_best_margin: Dict[str, Optional[float]] = field(default_factory=dict)
+    ant2_best_margin: Dict[str, Optional[float]] = field(default_factory=dict)
+    
+    # Tie flag (suffix -> 1 if margin=0 tie, 0 otherwise)
+    ant1_tie_flag: Dict[str, int] = field(default_factory=dict)
+    ant2_tie_flag: Dict[str, int] = field(default_factory=dict)
+    
+    # Best beam confidence (suffix -> HIGH/MED/LOW/SINGLE/NONE)
+    ant1_best_confidence: Dict[str, str] = field(default_factory=dict)
+    ant2_best_confidence: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -81,11 +134,44 @@ class ProtocolResult:
     success: bool = True
     error_message: str = ""
     
+    # Run identification
+    run_id: str = ""
+    
     # Metadata
     station_name: str = ""
     ref_antenna_name: str = ""
     start_time: str = ""
     end_time: str = ""
+    
+    # Protocol configuration
+    protocol_dwell_s: float = 3.0
+    protocol_repeats: int = 3
+    port_config: int = 0
+    beam_sequence: str = "LEFT|CENTER|RIGHT"
+    active_antennas: List[int] = field(default_factory=lambda: [1, 2])
+    tie_break_rule: str = "prefer_higher_rssi"
+    
+    # Target configuration (for validation)
+    targets_configured_suffixes: List[str] = field(default_factory=list)
+    targets_configured_labels: List[str] = field(default_factory=list)
+    
+    # Hardware status
+    mcu_connected: bool = False
+    reader_connected: bool = False
+    port2_enabled: bool = True
+    
+    # Antenna health diagnostics
+    ant1_health: str = "OK"  # OK, NO_TAG_REPORTS, DISABLED
+    ant2_health: str = "OK"
+    ant1_warning: str = ""
+    ant2_warning: str = ""
+    
+    # Data validation
+    data_valid: bool = True
+    validation_errors: List[str] = field(default_factory=list)
+    
+    # Optional notes
+    notes: str = ""
     
     # Results
     step_results: List[StepResult] = field(default_factory=list)

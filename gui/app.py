@@ -22,6 +22,7 @@ from core.mcu_controller import MCUController
 from core.beam_lut import CorrectedBeamLUT
 from core.tag_manager import TagManager
 from protocols.afsuam import AFSUAMProtocol
+from protocols.inventory import SimpleInventoryProtocol
 from protocols.calibration import CalibrationSweepProtocol
 from protocols.beam_check import BeamCheckProtocol
 from utils.csv_exporter import CSVExporter
@@ -89,6 +90,12 @@ class MeasurementApp:
                 lut=self.lut,
                 tag_manager=self.tag_manager
             )
+            self.protocol_simple_inventory = SimpleInventoryProtocol(
+                reader=self.reader,
+                mcu=self.mcu,
+                lut=self.lut,
+                tag_manager=self.tag_manager
+            )
             self.protocol_calib = CalibrationSweepProtocol(
                 reader=self.reader,
                 mcu=self.mcu,
@@ -103,6 +110,7 @@ class MeasurementApp:
             )
         else:
             self.protocol_afsuam = None
+            self.protocol_simple_inventory = None
             self.protocol_calib = None
             self.protocol_beam_check = None
         
@@ -249,6 +257,10 @@ class MeasurementApp:
             self.notebook,
             protocol=self.protocol_afsuam,
             tag_manager=self.tag_manager,
+            simple_inventory_protocol=self.protocol_simple_inventory,
+            csv_exporter=self.exporter,
+            reader=self.reader,
+            hardware_panel=self.hardware_panel,
             on_export=self._on_protocol_export
         )
         self.notebook.add(self.protocol_runner, text="🔬 AFSUAM Protocol")
@@ -384,8 +396,10 @@ class MeasurementApp:
     def _on_reader_connected(self):
         """Handle reader connection."""
         antennas = self.hardware_panel.current_antennas
+        mode = self.hardware_panel.antenna_mode
         self.live_monitor.set_current_antennas(antennas)
         self.protocol_runner.set_current_antennas(antennas)
+        self.protocol_runner.set_antenna_mode(mode)
         self.status_bar.set_status("Reader connected", "success")
         self.export_tab.log("Reader connected")
         self.led_reader.set_state("connected")
@@ -521,12 +535,9 @@ class MeasurementApp:
         if self._update_id:
             self.root.after_cancel(self._update_id)
         
-        # Disconnect hardware
-        if self.mcu and self.mcu.is_connected:
-            self.mcu.disconnect()
-        
-        if self.reader and self.reader.connected:
-            self.reader.disconnect()
+        # Disconnect all hardware (MCU and Reader)
+        if hasattr(self, 'hardware_panel'):
+            self.hardware_panel.disconnect_all()
         
         self.root.destroy()
     
